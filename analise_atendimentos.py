@@ -284,7 +284,8 @@ st.sidebar.metric("Média de Visitas/Paciente", f"{media_retorno:.1f}")
 # ==========================================
 # CONTEÚDO PRINCIPAL (TABS)
 # ==========================================
-tab_prof, tab_idade, tab_vol_unicos, tab_idosos = st.tabs([
+tab_desc, tab_prof, tab_idade, tab_vol_unicos, tab_idosos = st.tabs([
+    "🏠 Caracterização da Unidade",
     "👥 Atendimento por Área Profissional",
     "👶👵 Distribuição por Faixa Etária",
     "📈 Volumes e Pacientes Únicos",
@@ -304,6 +305,172 @@ def build_download_button(fig_function, data, filename):
         file_name=filename,
         mime="image/png"
     )
+
+# ------------------------------------------
+# TAB 0: CARACTERIZAÇÃO DA UNIDADE
+# ------------------------------------------
+with tab_desc:
+    st.markdown("### 🏠 Caracterização e Indicadores Sociais da Vila Fátima (Censo 2022)")
+    st.write("Apresentação de dados descritivos sobre o território, demografia e perfil socioeconômico da Unidade de Saúde Vila Fátima.")
+    
+    # 3 Métricas de Território & População
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">👥</div>
+            <div class="metric-title">População Residente</div>
+            <div class="metric-value">4.890,7</div>
+            <div class="metric-sub">Pessoas residentes no território</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">🗺️</div>
+            <div class="metric-title">Área Territorial</div>
+            <div class="metric-value">0,5135 km²</div>
+            <div class="metric-sub">Extensão total mapeada</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">🏠</div>
+            <div class="metric-title">Favela e Comunidade Urbana</div>
+            <div class="metric-value">69,18%</div>
+            <div class="metric-sub">Proporção da área territorial total</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 3 Métricas de Renda
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">💵</div>
+            <div class="metric-title">Renda Média Mensal</div>
+            <div class="metric-value">R$ 1.721,14</div>
+            <div class="metric-sub">Renda média mensal familiar</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c5:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">📊</div>
+            <div class="metric-title">Renda Mediana Mensal</div>
+            <div class="metric-value">R$ 1.212,00</div>
+            <div class="metric-sub">50% das rendas estão abaixo deste limite</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with c6:
+        st.markdown("""
+        <div class="metric-card">
+            <div class="metric-icon">📉</div>
+            <div class="metric-title">Desvio Padrão da Renda</div>
+            <div class="metric-value">R$ 378,07</div>
+            <div class="metric-sub">Dispersão da renda média mensal</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    col_pyramid, col_race = st.columns([1.1, 0.9])
+    
+    with col_pyramid:
+        st.markdown("#### 📊 Distribuição por Faixa Etária (Pirâmide Etária)")
+        
+        categories = ['0-4 Anos', '5-9 Anos', '10-14 Anos', '15-19 Anos', '20-24 Anos', 
+                      '25-29 Anos', '30-39 Anos', '40-49 Anos', '50-59 Anos', '60-69 Anos', '70 Anos ou Mais']
+        
+        # Contagens proporcionais da pirâmide
+        male_values = [303, 380, 280, 280, 380, 290, 500, 460, 330, 230, 150]
+        female_values = [275, 330, 335, 310, 380, 350, 606, 510, 420, 340, 260]
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=categories,
+            x=[-val for val in male_values],
+            name='Masculino',
+            orientation='h',
+            marker=dict(color='#8ecae6'),
+            hoverinfo='text',
+            text=male_values,
+            hovertemplate='<b>Masculino</b><br>Faixa: %{y}<br>População: %{text}<extra></extra>'
+        ))
+        fig.add_trace(go.Bar(
+            y=categories,
+            x=female_values,
+            name='Feminino',
+            orientation='h',
+            marker=dict(color='#f1a7a1'),
+            hoverinfo='text',
+            text=female_values,
+            hovertemplate='<b>Feminino</b><br>Faixa: %{y}<br>População: %{text}<extra></extra>'
+        ))
+        fig.update_layout(
+            barmode='overlay',
+            bargap=0.1,
+            bargroupgap=0,
+            xaxis=dict(
+                tickvals=[-606, -303, 0, 303, 606],
+                ticktext=['606', '303', '0', '303', '606'],
+                title='População',
+                gridcolor='rgba(255,255,255,0.08)'
+            ),
+            yaxis=dict(
+                title='Faixa Etária'
+            ),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend=dict(x=0.75, y=0.98),
+            margin=dict(l=40, r=40, t=20, b=40),
+            height=450
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+    with col_race:
+        st.markdown("#### 👥 Composição por Raça/Cor (%)")
+        
+        raca_df = pd.DataFrame({
+            'Raça/Cor': ['Branca', 'Preta', 'Parda', 'Amarela', 'Indígena'],
+            'População Masculina (%)': [42.47, 31.84, 25.68, 0.00, 0.00],
+            'População Feminina (%)': [43.01, 33.43, 23.32, 0.00, 0.00]
+        })
+        
+        formatted_raca = raca_df.copy()
+        formatted_raca['População Masculina (%)'] = formatted_raca['População Masculina (%)'].map('{:.2f}%'.format)
+        formatted_raca['População Feminina (%)'] = formatted_raca['População Feminina (%)'].map('{:.2f}%'.format)
+        
+        st.dataframe(formatted_raca, use_container_width=True, hide_index=True)
+        
+        fig_raca = go.Figure()
+        fig_raca.add_trace(go.Bar(
+            x=raca_df['Raça/Cor'],
+            y=raca_df['População Masculina (%)'],
+            name='Masculino',
+            marker_color='#8ecae6'
+        ))
+        fig_raca.add_trace(go.Bar(
+            x=raca_df['Raça/Cor'],
+            y=raca_df['População Feminina (%)'],
+            name='Feminino',
+            marker_color='#f1a7a1'
+        ))
+        fig_raca.update_layout(
+            barmode='group',
+            xaxis_title='Raça/Cor',
+            yaxis_title='Proporção (%)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend=dict(x=0.75, y=0.98),
+            margin=dict(l=40, r=40, t=20, b=40),
+            height=300,
+            yaxis=dict(gridcolor='rgba(255,255,255,0.08)', range=[0, 50])
+        )
+        st.plotly_chart(fig_raca, use_container_width=True)
 
 # ------------------------------------------
 # TAB 1: PROFISSIONAIS

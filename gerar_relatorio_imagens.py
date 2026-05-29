@@ -289,7 +289,7 @@ def plot_idosos_pizza(df_elderly, output_path=None):
         autotext.set_fontsize(10)
         autotext.set_weight('bold')
         
-    ax.set_title('Distribuição Geral dos Atendimentos a Idosos (Desde 11/2019)', pad=20, fontweight='bold')
+    ax.set_title('Distribuição Geral dos Atendimentos a Idosos (2025-2026)', pad=20, fontweight='bold')
     
     plt.tight_layout()
     if output_path:
@@ -325,14 +325,15 @@ def plot_idosos_temporal(df_elderly, output_path=None):
         alpha=0.85
     )
     
-    ax.set_title('Evolução Mensal de Atendimentos a Idosos por Subfaixa Etária (Desde 11/2019)', pad=20, fontweight='bold')
+    ax.set_title('Evolução Mensal de Atendimentos a Idosos por Subfaixa Etária (2025-2026)', pad=20, fontweight='bold')
     ax.set_ylabel('Número de Atendimentos')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     
-    # Configura rótulos do eixo X para mostrar apenas alguns pontos para não amontoar
-    ax.set_xticks(range(0, len(x_labels), 6))
-    ax.set_xticklabels([x_labels[i] for i in range(0, len(x_labels), 6)], rotation=45)
+    # Configura rótulos do eixo X — no biênio 2025-2026 o número de meses é reduzido
+    step = max(1, len(x_labels) // 12)
+    ax.set_xticks(range(0, len(x_labels), step))
+    ax.set_xticklabels([x_labels[i] for i in range(0, len(x_labels), step)], rotation=45)
     
     ax.legend(loc='upper left', frameon=True)
     
@@ -455,11 +456,11 @@ def main():
         print(f"Diretório '{output_dir}' criado com sucesso.")
         
     df_25_26 = df[df['year'].isin([2025, 2026])].copy()
-    df_elderly = df[(df['age'] >= 60) & (df['parsed_date'] >= datetime(2019, 11, 1))].copy()
+    df_elderly = df[(df['age'] >= 60) & df['year'].isin([2025, 2026])].copy()
     
     print(f"Total registros carregados: {len(df)}")
     print(f"Registros 2025-2026: {len(df_25_26)}")
-    print(f"Registros Idosos desde 11/2019: {len(df_elderly)}")
+    print(f"Registros Idosos (2025-2026): {len(df_elderly)}")
     
     # 1. Profissionais
     print("Gerando gráfico: 1_agrupamento_profissionais.png...")

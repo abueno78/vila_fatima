@@ -7,3 +7,9 @@ coleta_esus.db
 .ipynb_checkpoints/
 *.pdf
 *.png
+# Arquivos de apresentação e exportação
+*.pptx
+*.kmz
+# Logs e outputs temporários
+scraper_errors.log
+*.json

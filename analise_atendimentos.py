@@ -183,25 +183,38 @@ st.markdown("""
 # ==========================================
 @st.cache_data(ttl=3600)
 def get_cached_data():
-    db_path = 'coleta_esus.db'
-    
-    # Auto-extração na Nuvem do Streamlit
-    if not os.path.exists(db_path) and os.path.exists(db_path + '.gz'):
-        import gzip
-        import shutil
-        with gzip.open(db_path + '.gz', 'rb') as f_in:
-            with open(db_path, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
-                
+    # Usa caminho relativo ao script para funcionar tanto em dev local
+    # quanto no Streamlit Cloud (Linux), independente do CWD.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_dir, 'coleta_esus.db')
+    gz_path = os.path.join(base_dir, 'coleta_esus.db.gz')
+
+    # Auto-extração do banco comprimido (Streamlit Cloud não persiste arquivos descomprimidos)
+    if not os.path.exists(db_path):
+        if os.path.exists(gz_path):
+            import gzip
+            import shutil
+            with gzip.open(gz_path, 'rb') as f_in:
+                with open(db_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            st.error(
+                f"Banco de dados não encontrado. "
+                f"Esperado: `{gz_path}` ou `{db_path}`"
+            )
+            st.stop()
+
     df = load_data(db_path)
-    
-    # Subconjuntos de dados para a análise
+
+    # O banco público já contém apenas dados de 2025-2026.
+    # Os filtros abaixo garantem consistência mesmo se o banco local
+    # (desenvolvimento) ainda contiver anos anteriores.
     df_25_26 = df[df['year'].isin([2025, 2026])].copy()
-    df_elderly = df[(df['age'] >= 60) & (df['parsed_date'] >= datetime(2019, 11, 1))].copy()
-    
+    df_elderly = df[(df['age'] >= 60) & df['year'].isin([2025, 2026])].copy()
+
     del df
     gc.collect()
-    
+
     return df_25_26, df_elderly
 
 # Carrega os dados tratados do Cache
@@ -214,7 +227,7 @@ st.markdown("""
 <div class="header-card">
     <div style="text-align: center;">
         <div class="header-title">📊 Análise de Atendimentos Vila Fátima</div>
-        <div class="header-subtitle">Estudo operacional (2025-2026) e demográfico dos idosos (desde 11/2019)</div>
+        <div class="header-subtitle">Estudo operacional e demográfico dos idosos — Biênio 2025-2026</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -226,11 +239,11 @@ st.sidebar.image("logo_pucrs.png" if os.path.exists("logo_pucrs.png") else "http
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 st.sidebar.title("📌 Informações Gerais")
 st.sidebar.info("""
-Este painel apresenta análises específicas solicitadas sobre os atendimentos da Unidade de Saúde Vila Fátima.
+Este painel apresenta análises sobre os atendimentos da Unidade de Saúde Vila Fátima.
 
-**Períodos analisados:**
-- **Atendimentos Gerais:** Janeiro/2025 a Abril/2026.
-- **Saúde do Idoso:** Novembro/2019 a Abril/2026.
+**Período analisado:** Janeiro/2025 a Abril/2026.
+
+*Dados anonimizados conforme LGPD para fins de apresentação pública.*
 """)
 
 # Função global para faixa etária
@@ -844,20 +857,10 @@ with tab_idosos:
     st.markdown("### 👴 Análise Avançada e Demográfica dos Pacientes Idosos")
     st.write("Estudo aprofundado dos pacientes com idade igual ou superior a 60 anos, subdivididos em subfaixas etárias específicas.")
     
-    # Seletor de período
-    periodo_idosos = st.radio(
-        "Selecione o Período para Análise Demográfica dos Idosos:",
-        ["Histórico Completo (Desde 11/2019)", "Apenas Período de 2025 e 2026"],
-        horizontal=True
-    )
-    
-    # Filtra o dataframe
-    if periodo_idosos == "Apenas Período de 2025 e 2026":
-        df_eld_filtered = df_elderly[df_elderly['year'].isin([2025, 2026])].copy()
-        label_periodo_desc = "no período de 2025 e 2026"
-    else:
-        df_eld_filtered = df_elderly.copy()
-        label_periodo_desc = "no histórico completo (desde 11/2019)"
+    # O banco público contém exclusivamente dados de 2025-2026;
+    # a análise de idosos reflete esse mesmo período.
+    df_eld_filtered = df_elderly.copy()
+    label_periodo_desc = "no biênio 2025-2026"
         
     # Categorização específica para idosos
     def categorize_elderly(age):
@@ -984,14 +987,14 @@ with tab_idosos:
         build_download_button(plot_idosos_temporal, df_eld_filtered, "6_evolucao_idosos_temporal.png")
         
     # Tabela detalhada
-    st.markdown("#### Dados Históricos Mensais por Subfaixa de Idoso")
+    st.markdown("#### Dados Mensais por Subfaixa de Idoso")
     monthly_eld_df = monthly_eld.copy()
     monthly_eld_df.index = monthly_eld_df.index.astype(str)
     st.dataframe(monthly_eld_df, use_container_width=True, height=250)
     
     st.markdown(f"""
     <div class="desc-box">
-        <h4>📝 Análise Descritiva — Demografia dos Idosos ({periodo_idosos})</h4>
+        <h4>📝 Análise Descritiva — Demografia dos Idosos (Biênio 2025-2026)</h4>
         <p>
             O estudo dos atendimentos à população idosa (60 anos ou mais) <b>{label_periodo_desc}</b> revela um retrato demográfico claro do envelhecimento populacional assistido pela unidade Vila Fátima:
             <ul>
@@ -1000,7 +1003,7 @@ with tab_idosos:
                 <li><b>Idosos Muito Idosos (81 a 90 anos):</b> Acumulam <b>{pct_81_90:.1f}%</b> ({(df_eld['elderly_group']=='81-90 anos').sum():,} atendimentos), caracterizando um grupo de alta vulnerabilidade, demandando cuidados continuados e frequentemente domiciliares.</li>
                 <li><b>Idosos Longevos (91 anos ou mais):</b> Correspondem a <b>{pct_91_plus:.1f}%</b> do total ({(df_eld['elderly_group']=='91+ anos').sum():,} atendimentos). Embora percentualmente pequeno, este é um grupo clinicamente complexo que exige coordenação de cuidado especializada de geriatria e equipes multidisciplinares (eMulti).</li>
             </ul>
-            A análise do gráfico temporal mostra o volume mensal por subfaixas. No período recente de 2025-2026, nota-se a estabilização e consistência da demanda com picos cíclicos.
+            A análise do gráfico temporal mostra o volume mensal por subfaixas, com padrão de demanda consistente ao longo do biênio 2025-2026.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -1044,18 +1047,20 @@ with tab_idosos:
         build_download_button(plot_retorno_faixas_idosos, df_eld_filtered, "8_retorno_faixas_idosos.png")
         
     with col_desc_ret_eld:
-        st.markdown("""
+        # Gera a descrição com valores dinâmicos calculados a partir dos dados reais
+        desc_items = ""
+        for grp, ratio in zip(order_eld_ret, ratios_eld_ret):
+            desc_items += f"<li><b>{grp}:</b> Média de <b>{ratio:.2f}</b> atendimentos por paciente.</li>\n"
+        
+        st.markdown(f"""
         <div class="desc-box" style="border-left-color: #AF7AC5; margin-top: 0;">
             <h4>💡 Análise Operacional do Retorno dos Idosos</h4>
             <p>
-                Analisando as subfaixas de idosos, observa-se que <b>a frequência média de retorno à unidade cresce linearmente com o aumento da idade do paciente</b>, atingindo o máximo na faixa de <b>81 a 90 anos</b>:
+                Analisando as subfaixas de idosos, observa-se que <b>a frequência média de retorno à unidade cresce com o avanço da idade do paciente</b>:
                 <ul>
-                    <li><b>60-70 anos:</b> Média de 13.53 atendimentos por paciente.</li>
-                    <li><b>71-80 anos:</b> Média de 15.55 atendimentos por paciente.</li>
-                    <li><b>81-90 anos:</b> Média máxima de <b>17.42 atendimentos</b> por paciente.</li>
-                    <li><b>91+ anos:</b> Média de 14.45 atendimentos por paciente (ligeira redução associada a limitações físicas).</li>
+                    {desc_items}
                 </ul>
-                Esse gradiente demonstra o impacto direto do envelhecimento avançado na necessidade de assistência de saúde. Idosos longevos (80+) demandam acompanhamento muito mais assíduo das equipes de saúde da família e assistência social para gerenciamento de múltiplas patologias crônicas de alta complexidade.
+                Esse gradiente demonstra o impacto direto do envelhecimento avançado na necessidade de assistência de saúde. Idosos longevos (80+) demandam acompanhamento muito mais assíduo das equipes de saúde da família para gerenciamento de múltiplas patologias crônicas.
             </p>
         </div>
         """, unsafe_allow_html=True)

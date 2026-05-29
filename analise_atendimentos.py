@@ -8,7 +8,10 @@ import os
 import io
 import re
 from datetime import datetime
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import gc
 
 # Importa as funções de plotagem estática do script CLI para reutilização
 from gerar_relatorio_imagens import (
@@ -195,6 +198,9 @@ def get_cached_data():
     # Subconjuntos de dados para a análise
     df_25_26 = df[df['year'].isin([2025, 2026])].copy()
     df_elderly = df[(df['age'] >= 60) & (df['parsed_date'] >= datetime(2019, 11, 1))].copy()
+    
+    del df
+    gc.collect()
     
     return df_25_26, df_elderly
 

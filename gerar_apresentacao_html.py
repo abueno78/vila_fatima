@@ -1,4 +1,5 @@
 import os
+import base64
 import sqlite3
 import re
 import numpy as np
@@ -10,10 +11,26 @@ from datetime import datetime
 # Importa funções de carga do script original do projeto
 from gerar_relatorio_imagens import load_data
 
+def img_b64(path):
+    """Retorna string data URI base64 para embutir imagem no HTML."""
+    if not os.path.exists(path):
+        return ''
+    ext = path.rsplit('.', 1)[-1].lower()
+    mime = {'jpg': 'jpeg', 'jpeg': 'jpeg', 'png': 'png'}.get(ext, 'jpeg')
+    with open(path, 'rb') as f:
+        return f'data:image/{mime};base64,{base64.b64encode(f.read()).decode()}'
+
 def main():
     db_path = 'coleta_esus.db'
     print("Carregando dados para a apresentação...")
     df = load_data(db_path)
+
+    # Carrega fotos como base64 inline
+    print("Carregando fotos em base64...")
+    foto_aerea  = img_b64('fotos_unidade/foto_territorio_aereo.jpg')
+    foto_odonto = img_b64('fotos_unidade/foto_odontologia_pucrs.jpg')
+    foto_acs    = img_b64('fotos_unidade/foto_acs_idosa.jpg')
+    foto_equipe = img_b64('fotos_unidade/foto_equipe_territorio.jpg')
     
     # Filtros idênticos aos do dashboard
     df_25_26 = df[df['year'].isin([2025, 2026])].copy()
@@ -433,28 +450,31 @@ def main():
     <div class="reveal">
         <div class="slides">
             
-            <!-- Slide 1: Cover (Capa) -->
-            <section class="flex flex-col justify-center items-center h-full text-center">
-                <div class="mb-4">
-                    <img src="https://logodownload.org/wp-content/uploads/2021/04/pucrs-logo.png" style="height: 60px; filter: brightness(0) invert(1);" alt="PUCRS Logo">
-                </div>
-                
-                <!-- Português -->
-                <div class="lang-pt">
-                    <h1 class="mb-2">Unidade de Saúde Vila Fátima</h1>
-                    <p class="text-sky-400 font-semibold text-xl mb-8">Perfil Operacional e Demográfico (Dados do Censo 2022 e Atendimentos 2025-2026)</p>
-                    <div class="w-24 h-1 bg-sky-500 mb-8 mx-auto"></div>
-                    <p class="text-gray-400 text-sm">Público-alvo: Professores e Visitantes Estrangeiros</p>
-                    <p class="text-gray-500 text-xs mt-2">PUCRS Escola de Medicina • Porto Alegre, Brasil</p>
-                </div>
-                
-                <!-- Inglês -->
-                <div class="lang-en hidden">
-                    <h1 class="mb-2">Vila Fátima Primary Health Unit</h1>
-                    <p class="text-sky-400 font-semibold text-xl mb-8">An Operational & Demographic Profile (Census 2022 & 2025-2026 Data)</p>
-                    <div class="w-24 h-1 bg-sky-500 mb-8 mx-auto"></div>
-                    <p class="text-gray-400 text-sm">Target Audience: Academic & Institutional Visitors</p>
-                    <p class="text-gray-500 text-xs mt-2">PUCRS School of Medicine • Porto Alegre, Brazil</p>
+            <!-- Slide 1: Cover (Capa) com foto aérea de fundo -->
+            <section style="padding:0;overflow:hidden;position:relative;">
+                {f'<img src="{foto_aerea}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0.25;" />' if foto_aerea else ''}
+                <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:2rem;">
+                    <div class="mb-4">
+                        <img src="https://logodownload.org/wp-content/uploads/2021/04/pucrs-logo.png" style="height: 60px; filter: brightness(0) invert(1);" alt="PUCRS Logo">
+                    </div>
+                    
+                    <!-- Português -->
+                    <div class="lang-pt">
+                        <h1 class="mb-2">Unidade de Saúde Vila Fátima</h1>
+                        <p class="text-sky-400 font-semibold text-xl mb-8">Perfil Operacional e Demográfico (Dados do Censo 2022 e Atendimentos 2025-2026)</p>
+                        <div class="w-24 h-1 bg-sky-500 mb-8 mx-auto"></div>
+                        <p class="text-gray-400 text-sm">Público-alvo: Professores e Visitantes Estrangeiros</p>
+                        <p class="text-gray-500 text-xs mt-2">PUCRS Escola de Medicina • Porto Alegre, Brasil</p>
+                    </div>
+                    
+                    <!-- Inglês -->
+                    <div class="lang-en hidden">
+                        <h1 class="mb-2">Vila Fátima Primary Health Unit</h1>
+                        <p class="text-sky-400 font-semibold text-xl mb-8">An Operational & Demographic Profile (Census 2022 & 2025-2026 Data)</p>
+                        <div class="w-24 h-1 bg-sky-500 mb-8 mx-auto"></div>
+                        <p class="text-gray-400 text-sm">Target Audience: Academic & Institutional Visitors</p>
+                        <p class="text-gray-500 text-xs mt-2">PUCRS School of Medicine • Porto Alegre, Brazil</p>
+                    </div>
                 </div>
             </section>
             
@@ -632,30 +652,31 @@ def main():
                 </div>
             </section>
 
-            <!-- Slide 6: Professional Domain Integration (Profissionais) -->
+            <!-- Slide 6: Professional Domain Integration (Profissionais) com foto dentista PUCRS -->
             <section class="px-8 text-left">
                 <h2 class="lang-pt">5. Integração Profissional Multidisciplinar</h2>
                 <h2 class="lang-en hidden">5. Multidisciplinary Professional Care</h2>
-                <div class="grid grid-cols-12 gap-6 items-center">
-                    <div class="col-span-8 card">
+                <div class="grid grid-cols-12 gap-4 items-center">
+                    <div class="col-span-7 card">
                         <div class="lang-pt">{div_area_pt}</div>
                         <div class="lang-en hidden">{div_area_en}</div>
                     </div>
-                    <div class="col-span-4 text-sm text-gray-300 space-y-4">
+                    {f'<div class="col-span-2"><img src="{foto_odonto}" style="width:100%;height:320px;object-fit:cover;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.5);" /></div>' if foto_odonto else '<div class="col-span-2"></div>'}
+                    <div class="col-span-3 text-sm text-gray-300 space-y-3">
                         <div class="lang-pt">
                             <p class="font-bold text-sky-400 text-base">Pilares da Assistência:</p>
                             <ul class="list-disc pl-4 space-y-2">
-                                <li><strong>Equipe Multiprofissional:</strong> Integração de Medicina, Enfermagem, Odontologia e Equipes Técnicas.</li>
-                                <li><strong>Atuação da Enfermagem:</strong> Papel crucial e central em consultas de triagem, pré-natal e acompanhamento de crônicos.</li>
-                                <li><strong>Saúde Bucal:</strong> Assistência odontológica integrada ao plano de cuidados do território.</li>
+                                <li><strong>Equipe Multiprofissional:</strong> Medicina, Enfermagem, Odontologia e Técnicos.</li>
+                                <li><strong>Enfermagem Central:</strong> Triagem, pré-natal e crônicos.</li>
+                                <li><strong>Saúde Bucal:</strong> Integrada ao cuidado do território.</li>
                             </ul>
                         </div>
                         <div class="lang-en hidden">
                             <p class="font-bold text-sky-400 text-base">Key Pillars of Care:</p>
                             <ul class="list-disc pl-4 space-y-2">
-                                <li><strong>Multidisciplinary Structure:</strong> Integrated services spanning Medicine, Nursing, Dentistry, and Nursing Technicians.</li>
-                                <li><strong>Strong Nurse-Led Care:</strong> Highlights the active role of nurses in triage, prenatal monitoring, and chronic patient control.</li>
-                                <li><strong>Dentistry Access:</strong> Robust oral health integration.</li>
+                                <li><strong>Multidisciplinary Structure:</strong> Medicine, Nursing, Dentistry, Technicians.</li>
+                                <li><strong>Nursing-Led Care:</strong> Triage, prenatal and chronic patients.</li>
+                                <li><strong>Dentistry Access:</strong> Integrated oral health care.</li>
                             </ul>
                         </div>
                     </div>
@@ -722,40 +743,39 @@ def main():
                 </div>
             </section>
 
-            <!-- Slide 9: Elderly Donut & Return Rate (Idosos Detalhado) -->
+            <!-- Slide 9: Elderly Donut & Return Rate (Idosos Detalhado) com foto ACS + Idosa -->
             <section class="px-8 text-left">
                 <h2 class="lang-pt">8. Foco na Atenção Geriátrica (Grupo 60+)</h2>
                 <h2 class="lang-en hidden">8. Geriatric Care Focus (60+ Cohort)</h2>
-                <div class="grid grid-cols-12 gap-6 items-center">
-                    <div class="col-span-4 card text-center">
+                <div class="grid grid-cols-12 gap-4 items-center">
+                    <div class="col-span-3 card text-center">
                         <div class="font-bold text-xs text-sky-400 uppercase mb-2 lang-pt">Distribuição por Idade (60+)</div>
                         <div class="font-bold text-xs text-sky-400 uppercase mb-2 lang-en hidden">Age Distribution (60+)</div>
-                        
                         <div class="lang-pt">{div_eld_donut_pt}</div>
                         <div class="lang-en hidden">{div_eld_donut_en}</div>
                     </div>
-                    <div class="col-span-4 card text-center">
+                    <div class="col-span-3 card text-center">
                         <div class="font-bold text-xs text-sky-400 uppercase mb-2 lang-pt">Taxa de Retorno por Idade</div>
                         <div class="font-bold text-xs text-sky-400 uppercase mb-2 lang-en hidden">Return Rate by Age Range</div>
-                        
                         <div class="lang-pt">{div_ret_eld_pt}</div>
                         <div class="lang-en hidden">{div_ret_eld_en}</div>
                     </div>
-                    <div class="col-span-4 text-sm text-gray-300 space-y-2">
+                    {f'<div class="col-span-3"><img src="{foto_acs}" style="width:100%;height:300px;object-fit:cover;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.5);" /></div>' if foto_acs else '<div class="col-span-3"></div>'}
+                    <div class="col-span-3 text-sm text-gray-300 space-y-2">
                         <div class="lang-pt">
-                            <p class="font-bold text-sky-400 text-base">Descobertas Gerontológicas:</p>
+                            <p class="font-bold text-sky-400 text-sm">Descobertas Gerontológicas:</p>
                             <ul class="list-disc pl-4 space-y-1 text-xs">
-                                <li><strong>Volume:</strong> A faixa de 60-70 anos representa a maior fatia absoluta de idosos em atendimento.</li>
-                                <li><strong>Intensidade Assistencial:</strong> O retorno cresce conforme a idade avança. O grupo de 81-90 anos exige, em média, <strong>17,42 consultas</strong> no período.</li>
-                                <li><strong>Dependência da APS:</strong> Idosos frágeis requerem visitas domiciliares sistemáticas e fluxo ativo.</li>
+                                <li>Faixa 60-70 anos: maior fatia absoluta dos idosos.</li>
+                                <li>Grupo 81-90 anos: média de <strong>17,42 consultas</strong> por paciente.</li>
+                                <li>Idosos frágeis dependem de visitas domiciliares ativas.</li>
                             </ul>
                         </div>
                         <div class="lang-en hidden">
-                            <p class="font-bold text-sky-400 text-base">Key Elderly Takeaways:</p>
+                            <p class="font-bold text-sky-400 text-sm">Key Elderly Takeaways:</p>
                             <ul class="list-disc pl-4 space-y-1 text-xs">
-                                <li><strong>Distribution:</strong> The 60-70 cohort represents the largest absolute share of geriatric appointments.</li>
-                                <li><strong>Extreme Continuity of Care:</strong> The oldest cohorts show extreme return rates. The 81-90 age group averages <strong>17.42 visits</strong>.</li>
-                                <li><strong>Social Vulnerability:</strong> Elderly patients are heavily dependent on immediate home visits and localized Primary Care (APS).</li>
+                                <li>60-70 cohort: largest absolute share of geriatric appointments.</li>
+                                <li>81-90 cohort: averages <strong>17.42 visits</strong> per patient.</li>
+                                <li>Frail elderly depend heavily on active home visits.</li>
                             </ul>
                         </div>
                     </div>
